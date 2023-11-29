@@ -1,11 +1,10 @@
 import io
 import queue
 import traceback
-
 import AWSIoTPythonSDK.MQTTLib as AWSIoTPyMQTT
 import PySimpleGUI as sg
 from PIL import Image
-
+import json
 
 class Application:
     def __init__(self):
@@ -21,6 +20,15 @@ class Application:
                 [sg.Text('Client Id:', font=middle_font)],
                 [sg.Input('Python_Client', key='_CLIENTID_IN_', size=(15, 1), font=context_font),
                  sg.Button('Connect', key='_CONNECT_BTN_', font=context_font)],
+                # Add text boxes and buttons for user input
+                [sg.Text('Frame Size', font=middle_font)],
+                [sg.Combo(['FRAMESIZE_QVGA (320 x 240)', 'FRAMESIZE_CIF (352 x 288)', 'FRAMESIZE_VGA (640 x 480)', 'FRAMESIZE_SVGA (800 x 600)'],
+                default_value='FRAMESIZE_QVGA (320 x 240)', key='_INPUT1_')],
+                [sg.Button('Submit', key='_SUBMIT1_', font=context_font)],
+                [sg.Text('Sampling rate', font=middle_font)],
+                [sg.Combo([30, 20, 10],
+                default_value=30, key='_INPUT2_')],
+                [sg.Button('Submit', key='_SUBMIT2_', font=context_font)],
                 [sg.Text('Notes:', font=middle_font)],
                 [sg.Multiline(key='_NOTES_', autoscroll=True, size=(26, 34), font=context_font, )],
             ], size=(235, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
@@ -47,7 +55,6 @@ class Application:
 
             if event == '_CONNECT_BTN_':
                 if self.window[event].get_text() == 'Connect':
-
                     if len(self.window['_CLIENTID_IN_'].get()) == 0:
                         self.popup_dialog('Client Id is empty', 'Error', context_font)
                     else:
@@ -57,6 +64,22 @@ class Application:
                 else:
                     self.window['_CONNECT_BTN_'].update('Connect')
                     self.aws_disconnect()
+            if event == '_SUBMIT1_':
+                if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
+                     sg.popup('Please Connect First!')
+                else:
+                    input1_value = self.window['_INPUT1_'].get()
+                    if input1_value:
+                        options = ['FRAMESIZE_QVGA (320 x 240)', 'FRAMESIZE_CIF (352 x 288)', 'FRAMESIZE_VGA (640 x 480)', 'FRAMESIZE_SVGA (800 x 600)']
+                        index = options.index(input1_value)
+                        self.publish_message('config', index)
+            if event == '_SUBMIT2_':
+                if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
+                     sg.popup('Please Connect First!')
+                else:
+                    input2_value = self.window['_INPUT2_'].get()
+                    if input2_value:
+                        self.publish_message('config', input2_value)
             try:
                 message = self.gui_queue.get_nowait()
             except queue.Empty:
@@ -81,8 +104,7 @@ class Application:
         try:
             if self.myAWSIoTMQTTClient.connect():
                 self.add_note('[MQTT] Connected')
-                for i in range(2):
-                    self.mqtt_subscribe('COMP7310'.format(i))
+                self.mqtt_subscribe('COMP7310')
 
             else:
                 self.add_note('[MQTT] Cannot Access AWS IOT')
@@ -120,6 +142,9 @@ class Application:
     def popup_dialog(self, contents, title, font):
         sg.Popup(contents, title=title, keep_on_top=True, font=font)
 
+    def publish_message(self, TOPIC, message):
+        self.myAWSIoTMQTTClient.publish(TOPIC, str(message), 1) 
+        print("Published: '" + str(message) + "' to the topic: " + "'foo'")
 
 if __name__ == '__main__':
     Application()
