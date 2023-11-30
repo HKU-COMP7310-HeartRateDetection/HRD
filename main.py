@@ -63,7 +63,6 @@ class Application:
                 # exposure control
                 [sg.Text('Exposure Control', font=middle_font), sg.Radio('disable', "RADIO2",key = '_EXPDIS_'), sg.Radio('enable', "RADIO2", key = '_EXPENA_', default=True)],
                 [sg.Button('Submit', key='_SUBMIT9_', font=context_font)],
-                [sg.Button('Reset all config', key = '_SUBMIT10_', font=context_font)]
             ], size=(350, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
         
         col3 = [[sg.Column([
@@ -71,14 +70,16 @@ class Application:
                 [sg.Image(key='_COMP7310_', size=(480, 320))],
                 ], font=middle_font)],
                 [sg.Text('Heart Rate:', font=middle_font)],
-                [sg.Text('Put Heart Rate Here', font =('Arial', 20) )]
+                [sg.Frame('CAMERA', [
+                [sg.Image(key='_COMP7310_', size=(480, 320))],
+                ], font=middle_font)],
                 ], pad=(0, 0), element_justification='c')] 
                 ]
         layout = [[
             sg.Column(col1), sg.Column(col2), sg.Column(col3)
         ]]
 
-        self.window = sg.Window('Python MQTT Client - AWS IoT -', layout)
+        self.window = sg.Window('Python MQTT Client - AWS IoT - COMP7310', layout)
         while True:
             event, values = self.window.Read(timeout=5)
             if event is None or event == 'Exit':
@@ -155,11 +156,11 @@ class Application:
                      sg.popup('Please Connect First!')
                 else:
                     if values['_WHIDIS_']:
-                        message = 0
+                        msg = 0
                     elif values['_WHIENA_']:
-                        message = 1
-                    self.publish_message('config_whitebal', message)
-                    self.window['_NOTES_'].print('Set whitebal ' + str(message)) 
+                        msg = 1
+                    self.publish_message('config_whitebal', msg)
+                    self.window['_NOTES_'].print('Set whitebal ' + str(msg)) 
             # wb mode
             if event == '_SUBMIT8_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
@@ -177,11 +178,11 @@ class Application:
                      sg.popup('Please Connect First!')
                 else:
                     if values['_EXPDIS_']:
-                        message = 0
+                        msg = 0
                     elif values['_EXPENA_']:
-                        message = 1
-                    self.publish_message('config_exposure', message)
-                    self.window['_NOTES_'].print('Set exposure ' + str(message)) 
+                        msg = 1
+                    self.publish_message('config_exposure', msg)
+                    self.window['_NOTES_'].print('Set exposure ' + str(msg)) 
 
             try:
                 message = self.gui_queue.get_nowait()
