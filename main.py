@@ -63,7 +63,6 @@ class Application:
                 # exposure control
                 [sg.Text('Exposure Control', font=middle_font), sg.Radio('disable', "RADIO2",key = '_EXPDIS_'), sg.Radio('enable', "RADIO2", key = '_EXPENA_', default=True)],
                 [sg.Button('Submit', key='_SUBMIT9_', font=context_font)],
-                [sg.Button('Reset all config', key = '_SUBMIT10_', font=context_font)]
             ], size=(350, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
         
         col3 = [[sg.Column([
