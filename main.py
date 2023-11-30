@@ -71,7 +71,7 @@ class Application:
                 ], font=middle_font)],
                 [sg.Text('Heart Rate:', font=middle_font)],
                 [sg.Frame('CAMERA', [
-                [sg.Image(key='_COMP7310_', size=(480, 320))],
+                [sg.Image(key='_HEARTRAEH_', size=(480, 320))],
                 ], font=middle_font)],
                 ], pad=(0, 0), element_justification='c')] 
                 ]
