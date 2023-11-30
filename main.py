@@ -23,10 +23,10 @@ class Application:
                 # Add text boxes and buttons for user input
                 [sg.Text('Frame Size', font=middle_font)],
                 [sg.Combo(['FRAMESIZE_QVGA (320 x 240)', 'FRAMESIZE_CIF (352 x 288)', 'FRAMESIZE_VGA (640 x 480)', 'FRAMESIZE_SVGA (800 x 600)'],
-                default_value='FRAMESIZE_QVGA (320 x 240)', key='_INPUT1_')],
+                default_value='FRAMESIZE_VGA (640 x 480)', key='_INPUT1_')],
                 [sg.Button('Submit', key='_SUBMIT1_', font=context_font)],
                 [sg.Text('Sampling rate', font=middle_font)],
-                [sg.Combo([30, 20, 10],
+                [sg.Combo([60,30, 20, 10],
                 default_value=30, key='_INPUT2_')],
                 [sg.Button('Submit', key='_SUBMIT2_', font=context_font)],
                 [sg.Slider(range=(-2, 2), default_value=0, orientation='h', key='_INPUT3_')],
@@ -82,7 +82,7 @@ class Application:
                 else:
                     input2_value = self.window['_INPUT2_'].get()
                     if input2_value:
-                        self.publish_message('config_frame', 's:'+str(input2_value))
+                        self.publish_message('config_frame', str(input2_value))
                         self.window['_NOTES_'].print('Set rating frame: ' + str(input2_value))
 
             if event == '_SUBMIT3_':
