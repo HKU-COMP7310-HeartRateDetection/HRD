@@ -29,6 +29,8 @@ class Application:
                 [sg.Combo([30, 20, 10],
                 default_value=30, key='_INPUT2_')],
                 [sg.Button('Submit', key='_SUBMIT2_', font=context_font)],
+                [sg.Slider(range=(-2, 2), default_value=0, orientation='h', key='_INPUT3_')],
+                [sg.Button('Submit', key='_SUBMIT3_', font=('Arial', 12))],
                 [sg.Text('Notes:', font=middle_font)],
                 [sg.Multiline(key='_NOTES_', autoscroll=True, size=(26, 34), font=context_font, )],
             ], size=(235, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
@@ -72,14 +74,23 @@ class Application:
                     if input1_value:
                         options = ['FRAMESIZE_QVGA (320 x 240)', 'FRAMESIZE_CIF (352 x 288)', 'FRAMESIZE_VGA (640 x 480)', 'FRAMESIZE_SVGA (800 x 600)']
                         index = options.index(input1_value)
-                        self.publish_message('config', index)
+                        self.publish_message('config_size', 'f:'+str(index))
+                        self.window['_NOTES_'].print('Set frame size: ' + str(input1_value))
             if event == '_SUBMIT2_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
                 else:
                     input2_value = self.window['_INPUT2_'].get()
                     if input2_value:
-                        self.publish_message('config', input2_value)
+                        self.publish_message('config_frame', 's:'+str(input2_value))
+                        self.window['_NOTES_'].print('Set rating frame: ' + str(input2_value))
+
+            if event == '_SUBMIT3_':
+                if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
+                     sg.popup('Please Connect First!')
+                else:
+                    slider_value = self.window['_INPUT3_']
+                    self.publish_message('config_brightness', slider_value)
             try:
                 message = self.gui_queue.get_nowait()
             except queue.Empty:
@@ -123,7 +134,7 @@ class Application:
             self.gui_queue.put({"Target_UI": "_{}_".format(str(message.topic).upper()),
                                 "Image": self.byte_image_to_png(message)})
         }):
-            self.add_note('[MQTT] Topic: {}\n-> Subscribed'.format(topic))
+            self.add_note('[MQTT] Topic: {}\n-> Subscribed\n'.format(topic))
         else:
             self.add_note('[MQTT] Cannot subscribe\nthis Topic: {}'.format(topic))
 
@@ -144,7 +155,7 @@ class Application:
 
     def publish_message(self, TOPIC, message):
         self.myAWSIoTMQTTClient.publish(TOPIC, str(message), 1) 
-        print("Published: '" + str(message) + "' to the topic: " + "'foo'")
+        self.window['_NOTES_'].print("Published: '" + str(message) + "' to the topic: " + str(TOPIC))
 
 if __name__ == '__main__':
     Application()
