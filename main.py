@@ -22,8 +22,8 @@ class Application:
         self.hr_queue = queue.Queue()
         self.hr_list = []
         self.hr_lg_queue = queue.Queue()# Line Graph
-        middle_font = ('Consolas', 14)
-        context_font = ('Consolas', 12)
+        middle_font = ('Times', 14)
+        context_font = ('Arial', 12)
         self.plot_timer = None
         # self.current_fr = 30
         self.global_brightness = 0.0
@@ -72,12 +72,13 @@ class Application:
                 [sg.Text('whitebalance', font=middle_font), sg.Radio('disable', "RADIO1",key = '_WHIDIS_', enable_events=True), sg.Radio('enable', "RADIO1", key = '_WHIENA_', default=True, enable_events=True)],
                 # [sg.Button('Submit', key='_SUBMIT7_', font=context_font)],
                 # wb_mode
-                [sg.Text('white blanace mode', font=middle_font)],
-                [sg.Combo(['Auto', 'Sunny', 'Cloudy', 'Office', 'Home'],
-                default_value='Auto', key='_INPUT8_')],
-                [sg.Button('Submit', key='_SUBMIT8_', font=context_font)],
+                [sg.Text('white blanace mode', font=middle_font), 
+                    sg.Combo(['Auto', 'Sunny', 'Cloudy', 'Office', 'Home'], 
+                                default_value='Auto', key='_INPUT8_'),
+                    sg.Button('Set', key='_SUBMIT8_', font=context_font)
+                ],
                 # exposure control
-                [sg.Text('Exposure Control', font=middle_font), sg.Radio('disable', "RADIO2",key = '_EXPDIS_'), sg.Radio('enable', "RADIO2", key = '_EXPENA_', default=True)],
+                [sg.Text('Exposure Control', font=middle_font), sg.Radio('disable', "RADIO2",key = '_EXPDIS_', enable_events=True), sg.Radio('enable', "RADIO2", key = '_EXPENA_', default=True, enable_events=True)],
                 [sg.Button('Submit', key='_SUBMIT9_', font=context_font)],
             ], size=(350, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
         
@@ -198,7 +199,8 @@ class Application:
                     self.publish_message('config_wb', index)
                     self.window['_NOTES_'].print('Set effect ' + str(input8_value)) 
             # exposure control
-            if event == '_SUBMIT9_':
+            # if event == '_SUBMIT9_':
+            if event == '_EXPDIS_' or event == '_EXPENA_':
                 message = 0
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
