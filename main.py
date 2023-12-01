@@ -296,14 +296,11 @@ class Application:
 
 # another subcribe function which decodes received data with byte64
     def mqtt_subscribe_hr(self, topic):
-        def handle_message(client, userdata, message):
-            image_data_str = message.payload.decode()  # 将接收到的base64字符串解码为字符串
-            image_data = base64.b64decode(image_data_str)  # 将字符串解码为二进制图像数据
-            image = Image.open(io.BytesIO(image_data))
-            image_bytes = image.tobytes()  # 将图像对象转换为字节数据
-            self.hr_queue.put({"Target_UI": "_{}_".format(str(message.topic).upper()), "Image": image_bytes})
+        if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
 
-        if self.myAWSIoTMQTTClient.subscribe(topic, 0, handle_message):
+            self.gui_queue.put({"Target_UI": "_{}_".format(str(message.topic).upper()),
+                                "Image": self.base64_to_png(message)})
+        }):
             self.add_note('[MQTT] Topic: {}\n-> Subscribed\n'.format(topic))
         else:
             self.add_note('[MQTT] Cannot subscribe\nthis Topic: {}'.format(topic))
@@ -312,8 +309,8 @@ class Application:
     def mqtt_subscribe_String(self, topic):
         if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
 
-            self.hr_queue.put({"HEARTRATE": "_{}_".format(str(message.topic).upper()),
-                                "Text": message.payload.decode("utf-8")})
+            self.gui_queue.put({"Target_UI": "_{}_".format(str(message.topic).upper()),
+                                "Image": self.byte_image_to_png(message)})
         }):
             self.add_note('[MQTT] Topic: {}\n-> Subscribed\n'.format(topic))
         else:
@@ -334,7 +331,13 @@ class Application:
         picture.save(im_bytes, format="PNG")
         return im_bytes.getvalue()
 
+    def base64_to_png(self, message):
+        base64_image = message.payload.decode('utf-8')
+        image_data = base64.b64decode(base64_image)
 
+        # Return the image data as bytes
+        return image_data
+    
     def popup_dialog(self, contents, title, font):
         sg.Popup(contents, title=title, keep_on_top=True, font=font)
 
