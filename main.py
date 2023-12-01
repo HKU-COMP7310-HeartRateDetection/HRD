@@ -25,27 +25,31 @@ class Application:
         middle_font = ('Times', 14)
         context_font = ('Arial', 12)
         self.plot_timer = None
+        self.subscribe_hr = True
         # self.current_fr = 30
         self.global_brightness = 0.0
         self.plot_lock = threading.Lock()
-        sg.theme('DarkGrey14')
+        sg.theme('LightBrown3')
         
         # Column 1: panel 1
         col1 = [[sg.Column([
             [sg.Frame('MQTT Panel 1', [[sg.Column([
                 [sg.Text('Client Id:', font=middle_font)],
-                [sg.Input('Sheer_Heart_Attack', key='_CLIENTID_IN_', size=(15, 1), font=context_font),
+                [sg.Input('Sheer_Heart_Attack', key='_CLIENTID_IN_', size=(17, 1), font=('Arial', 12)),
                  sg.Button('Connect', key='_CONNECT_BTN_', font=context_font)],
+                [sg.Text('')],
                 # Add text boxes and buttons for user input
                 [sg.Text('Frame Size', font=middle_font)],
                 [sg.Combo(['FRAMESIZE_QVGA (320 x 240)', 'FRAMESIZE_CIF (352 x 288)', 'FRAMESIZE_VGA (640 x 480)', 'FRAMESIZE_SVGA (800 x 600)'],
-                default_value='FRAMESIZE_QVGA (320 x 240)', key='_INPUT1_')],
+                default_value='FRAMESIZE_QVGA (320 x 240)', key='_INPUT1_', font=('Arial', 11))],
                 [sg.Button('Set Frame Size', key='_SUBMIT1_', font=context_font)],
-                [sg.Text('Frame rate', font=middle_font)],
+                [sg.Text('')],
+                [sg.Text('Frame Rate', font=middle_font)],
                 [sg.Combo([60,30, 20, 10],
-                default_value=30, key='_INPUT2_'), sg.Button('Set frame rate', key='_SUBMIT2_', font=context_font)],
+                default_value=30, key='_INPUT2_'), sg.Button('Set Frame Rate', key='_SUBMIT2_', font=context_font)],
+                [sg.Text('')],
                 [sg.Text('Notes:', font=middle_font)],
-                [sg.Multiline(key='_NOTES_', autoscroll=True, size=(20, 17), font=context_font, )],
+                [sg.Multiline(key='_NOTES_', autoscroll=True, size=(23, 15), font=context_font, )],
             ], size=(250, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
 
         # Column 2: panel 2
@@ -56,30 +60,38 @@ class Application:
                 [sg.Text('Brightness', font=middle_font)],
                 [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT3_', enable_events=True)],
                 # [sg.Button('Submit', key='_SUBMIT3_', font=('Arial', 12))],
+                [sg.Text('')],
                 # Contrast
                 [sg.Text('Contrast', font=middle_font)],
                 [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT4_', enable_events=True)],
                 # [sg.Button('Submit', key='_SUBMIT4_', font=context_font)],
+                [sg.Text('')],
                 # _saturation
                 [sg.Text('Saturation', font=middle_font)],
                 [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT5_', enable_events=True)],
                 # [sg.Button('Submit', key='_SUBMIT5_', font=context_font)],
+                [sg.Text('')],
                 # special_effect
-                [sg.Text('Special effects', font=middle_font)],
+                [sg.Text('Special Effects', font=middle_font)],
                 [sg.Combo(['No Effect', 'Negative', 'Grayscale', 'Red Tint', 'Green Tint', 'Blue Tint', 'Sepia'],
-                default_value='No Effect', key='_INPUT6_'), sg.Button('Set Special effects', key='_SUBMIT6_', font=context_font)],
+                default_value='No Effect', key='_INPUT6_'), sg.Text('  '),sg.Button('Set Special Effects', key='_SUBMIT6_', font=context_font)],
+                [sg.Text('')],
                 # whitebal
-                [sg.Text('whitebalance', font=middle_font), sg.Radio('disable', "RADIO1",key = '_WHIDIS_', enable_events=True), sg.Radio('enable', "RADIO1", key = '_WHIENA_', default=True, enable_events=True)],
+                [sg.Text('White Balance', font=middle_font), sg.Radio('disable', "RADIO1",key = '_WHIDIS_', enable_events=True), sg.Radio('enable', "RADIO1", key = '_WHIENA_', default=True, enable_events=True)],
                 # [sg.Button('Submit', key='_SUBMIT7_', font=context_font)],
+                [sg.Text('')],
                 # wb_mode
-                [sg.Text('white blanace mode', font=middle_font), 
+                [sg.Text('White Blanace Mode', font=middle_font), 
                     sg.Combo(['Auto', 'Sunny', 'Cloudy', 'Office', 'Home'], 
                                 default_value='Auto', key='_INPUT8_'),
-                    sg.Button('Set', key='_SUBMIT8_', font=context_font)
+                    sg.Button('Set Mode', key='_SUBMIT8_', font=context_font)
                 ],
+                [sg.Text('')],
                 # exposure control
                 [sg.Text('Exposure Control', font=middle_font), sg.Radio('disable', "RADIO2",key = '_EXPDIS_', enable_events=True), sg.Radio('enable', "RADIO2", key = '_EXPENA_', default=True, enable_events=True)],
-                [sg.Button('Submit', key='_SUBMIT9_', font=context_font)],
+                # [sg.Button('Submit', key='_SUBMIT9_', font=context_font)],
+                [sg.Text('')],
+                [sg.Text('Heart Rate Plot'), sg.Checkbox('ON', key='_TOGGLE_', default=True, enable_events=True)]
             ], size=(350, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
         
         # Column 3: 
@@ -94,7 +106,7 @@ class Application:
             # Second frame: Heart rate from backend
                 [sg.Frame('Heart Rate Line Graph',[
                 [sg.Image(key='_HEARTRATE_', size = (480, 320))],
-                ],)]
+                ], font=middle_font)]
                 ], pad=(0, 0), element_justification='c')] 
                 ]
         layout = [[
@@ -178,16 +190,18 @@ class Application:
             # whitebal
             # if event == '_SUBMIT7_':
             if event == '_WHIDIS_' or event == '_WHIENA_':
-                message = 0
+                msg = 0
+                value = 'enable'
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
                 else:
                     if values['_WHIDIS_']:
                         msg = 0
+                        value = 'disable'
                     elif values['_WHIENA_']:
                         msg = 1
                     self.publish_message('config_whitebal', msg)
-                    self.window['_NOTES_'].print('Set whitebalance ' + str(msg)) 
+                    self.window['_NOTES_'].print('Set white balance ' + value) 
             # whitebal mode
             if event == '_SUBMIT8_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
@@ -201,17 +215,23 @@ class Application:
             # exposure control
             # if event == '_SUBMIT9_':
             if event == '_EXPDIS_' or event == '_EXPENA_':
-                message = 0
+                msg = 0
+                value = 'enable'
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
                 else:
                     if values['_EXPDIS_']:
                         msg = 0
+                        value = 'disable'
                     elif values['_EXPENA_']:
                         msg = 1
                     self.publish_message('config_exposure', msg)
-                    self.window['_NOTES_'].print('Set exposure ' + str(msg)) 
-
+                    self.window['_NOTES_'].print('Set exposure ' + value) 
+            
+            # Switch of hr plot
+            if event == '_TOGGLE_':
+                self.toggle_subscription()
+                self.window['_NOTES_'].print('Switch toggle status ' + str(values['_TOGGLE_'])) 
 
             # Send camera data to gui queue
             try:
@@ -277,6 +297,7 @@ class Application:
                 self.add_note('[MQTT] Connected')
                 self.mqtt_subscribe('COMP7310')
                 self.mqtt_subscribe_hr('HEARTRATE')
+                self.subscribe_hr = True
             else:
                 self.add_note('[MQTT] Cannot Access AWS IOT')
         except Exception as e:
@@ -354,7 +375,16 @@ class Application:
         self.myAWSIoTMQTTClient.publish(TOPIC, str(message), 1) 
         # self.window['_NOTES_'].print("Published to"+str(TOPIC))
         # self.window['_NOTES_'].print("Published: '" + str(message) + "' to the topic: " + str(TOPIC))
-
+# Switch status of subscription
+    def toggle_subscription(self):
+        if self.subscribe_hr:
+            self.myAWSIoTMQTTClient.unsubscribe('HEARTRATE')
+            self.subscribe_hr = False
+            self.add_note('[MQTT] Unsubscribed from HEARTRATE topic')
+        else:
+            self.mqtt_subscribe_hr('HEARTRATE')
+            self.subscribe_hr = True
+            self.add_note('[MQTT] Subscribed to HEARTRATE topic')
 
 # Plot heart rate graph(line graph). No longer in use
     def plot_hr_graph(self):
