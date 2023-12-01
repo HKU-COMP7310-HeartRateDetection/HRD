@@ -25,7 +25,8 @@ class Application:
         middle_font = ('Consolas', 14)
         context_font = ('Consolas', 12)
         self.plot_timer = None
-        self.current_fr = 30
+        # self.current_fr = 30
+        self.global_brightness = 0.0
         self.plot_lock = threading.Lock()
         sg.theme('DarkGrey14')
         
@@ -39,38 +40,37 @@ class Application:
                 [sg.Text('Frame Size', font=middle_font)],
                 [sg.Combo(['FRAMESIZE_QVGA (320 x 240)', 'FRAMESIZE_CIF (352 x 288)', 'FRAMESIZE_VGA (640 x 480)', 'FRAMESIZE_SVGA (800 x 600)'],
                 default_value='FRAMESIZE_QVGA (320 x 240)', key='_INPUT1_')],
-                [sg.Button('Submit', key='_SUBMIT1_', font=context_font)],
-                [sg.Text('Sampling rate', font=middle_font)],
+                [sg.Button('Set Frame Size', key='_SUBMIT1_', font=context_font)],
+                [sg.Text('Frame rate', font=middle_font)],
                 [sg.Combo([60,30, 20, 10],
-                default_value=30, key='_INPUT2_')],
-                [sg.Button('Submit', key='_SUBMIT2_', font=context_font)],
-                [sg.Text('Brightness', font=middle_font)],
-                [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT3_')],
-                [sg.Button('Submit', key='_SUBMIT3_', font=('Arial', 12))],
+                default_value=30, key='_INPUT2_'), sg.Button('Set frame rate', key='_SUBMIT2_', font=context_font)],
                 [sg.Text('Notes:', font=middle_font)],
-                [sg.Multiline(key='_NOTES_', autoscroll=True, size=(20, 10), font=context_font, )],
+                [sg.Multiline(key='_NOTES_', autoscroll=True, size=(20, 17), font=context_font, )],
             ], size=(250, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
 
         # Column 2: panel 2
         col2 = [[sg.Column([
             [sg.Frame('MQTT Panel 2', [[sg.Column([
                 # Add text boxes and buttons for user input
+                # Brightness
+                [sg.Text('Brightness', font=middle_font)],
+                [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT3_', enable_events=True)],
+                # [sg.Button('Submit', key='_SUBMIT3_', font=('Arial', 12))],
                 # Contrast
                 [sg.Text('Contrast', font=middle_font)],
-                [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT4_')],
-                [sg.Button('Submit', key='_SUBMIT4_', font=context_font)],
+                [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT4_', enable_events=True)],
+                # [sg.Button('Submit', key='_SUBMIT4_', font=context_font)],
                 # _saturation
                 [sg.Text('Saturation', font=middle_font)],
-                [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT5_')],
-                [sg.Button('Submit', key='_SUBMIT5_', font=context_font)],
+                [sg.Slider(range=(-2.0, 2.0), default_value=0.0, orientation='h', resolution=0.01, key='_INPUT5_', enable_events=True)],
+                # [sg.Button('Submit', key='_SUBMIT5_', font=context_font)],
                 # special_effect
                 [sg.Text('Special effects', font=middle_font)],
                 [sg.Combo(['No Effect', 'Negative', 'Grayscale', 'Red Tint', 'Green Tint', 'Blue Tint', 'Sepia'],
-                default_value='No Effect', key='_INPUT6_')],
-                [sg.Button('Submit', key='_SUBMIT6_', font=context_font)],
+                default_value='No Effect', key='_INPUT6_'), sg.Button('Set Special effects', key='_SUBMIT6_', font=context_font)],
                 # whitebal
-                [sg.Text('whitebalance', font=middle_font), sg.Radio('disable', "RADIO1",key = '_WHIDIS_'), sg.Radio('enable', "RADIO1", key = '_WHIENA_', default=True)],
-                [sg.Button('Submit', key='_SUBMIT7_', font=context_font)],
+                [sg.Text('whitebalance', font=middle_font), sg.Radio('disable', "RADIO1",key = '_WHIDIS_', enable_events=True), sg.Radio('enable', "RADIO1", key = '_WHIENA_', default=True, enable_events=True)],
+                # [sg.Button('Submit', key='_SUBMIT7_', font=context_font)],
                 # wb_mode
                 [sg.Text('white blanace mode', font=middle_font)],
                 [sg.Combo(['Auto', 'Sunny', 'Cloudy', 'Office', 'Home'],
@@ -138,7 +138,8 @@ class Application:
                         self.publish_message('config_frame', str(input2_value))
                         self.window['_NOTES_'].print('Set rating frame: ' + str(input2_value))
             # brightness
-            if event == '_SUBMIT3_':
+            # if event == '_SUBMIT3_':
+            if event == '_INPUT3_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
                 else:
@@ -146,7 +147,8 @@ class Application:
                     self.publish_message('config_brightness', slider_value)
                     self.window['_NOTES_'].print('Set brightness ' + str(slider_value))  
             # contrast
-            if event == '_SUBMIT4_':
+            # if event == '_SUBMIT4_':
+            if event == '_INPUT4_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
                 else:
@@ -154,7 +156,8 @@ class Application:
                     self.publish_message('config_contrast', slider_value)
                     self.window['_NOTES_'].print('Set contrast ' + str(slider_value))  
             # saturation
-            if event == '_SUBMIT5_':
+            # if event == '_SUBMIT5_':
+            if event == '_INPUT5_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
                 else:
@@ -172,7 +175,8 @@ class Application:
                     self.publish_message('config_effect', index)
                     self.window['_NOTES_'].print('Set effect ' + str(input6_value)) 
             # whitebal
-            if event == '_SUBMIT7_':
+            # if event == '_SUBMIT7_':
+            if event == '_WHIDIS_' or event == '_WHIENA_':
                 message = 0
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
@@ -182,8 +186,8 @@ class Application:
                     elif values['_WHIENA_']:
                         msg = 1
                     self.publish_message('config_whitebal', msg)
-                    self.window['_NOTES_'].print('Set whitebal ' + str(msg)) 
-            # wb mode
+                    self.window['_NOTES_'].print('Set whitebalance ' + str(msg)) 
+            # whitebal mode
             if event == '_SUBMIT8_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
                      sg.popup('Please Connect First!')
@@ -193,7 +197,7 @@ class Application:
                     index = options.index(input8_value)
                     self.publish_message('config_wb', index)
                     self.window['_NOTES_'].print('Set effect ' + str(input8_value)) 
-            # expo ctr
+            # exposure control
             if event == '_SUBMIT9_':
                 message = 0
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
@@ -255,7 +259,7 @@ class Application:
         # Don't delete this line
         self.window.Close()
 
-# aws connect
+# Aws connect
     def aws_connect(self, client_id):
         ENDPOINT = "a12ej9mk5jajtb-ats.iot.ap-east-1.amazonaws.com"
         PATH_TO_CERT = "cert.crt"
@@ -277,13 +281,13 @@ class Application:
             tb = traceback.format_exc()
             sg.Print(f'An error happened.  Here is the info:', e, tb)
 
-# aws disconnect
+# Aws disconnect
     def aws_disconnect(self):
         if self.myAWSIoTMQTTClient is not None:
             self.myAWSIoTMQTTClient.disconnect()
             self.add_note('[MQTT] Successfully Disconnected!')
 
-# subscribe binary stuff from mqtt server, then, put them into gui queue
+# Subscribe binary stuff from mqtt server, then, put them into gui queue
     def mqtt_subscribe(self, topic):
         if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
 
@@ -294,7 +298,7 @@ class Application:
         else:
             self.add_note('[MQTT] Cannot subscribe\nthis Topic: {}'.format(topic))
 
-# another subcribe function which decodes received data with byte64
+# Another subcribe function which decodes received data with byte64
     def mqtt_subscribe_hr(self, topic):
         if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
 
@@ -305,7 +309,7 @@ class Application:
         else:
             self.add_note('[MQTT] Cannot subscribe\nthis Topic: {}'.format(topic))
 
-# subscribe string data from server, and update the text content. No longer in use
+# Subscribe string data from server, and update the text content. No longer in use
     def mqtt_subscribe_String(self, topic):
         if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
 
@@ -331,19 +335,23 @@ class Application:
         picture.save(im_bytes, format="PNG")
         return im_bytes.getvalue()
 
+# Convert base64 file to png
     def base64_to_png(self, message):
         base64_image = message.payload.decode('utf-8')
         image_data = base64.b64decode(base64_image)
 
         # Return the image data as bytes
         return image_data
-    
+
+# Pop up a window
     def popup_dialog(self, contents, title, font):
         sg.Popup(contents, title=title, keep_on_top=True, font=font)
 
+# Publish message to TOPIC
     def publish_message(self, TOPIC, message):
         self.myAWSIoTMQTTClient.publish(TOPIC, str(message), 1) 
-        self.window['_NOTES_'].print("Published: '" + str(message) + "' to the topic: " + str(TOPIC))
+        # self.window['_NOTES_'].print("Published to"+str(TOPIC))
+        # self.window['_NOTES_'].print("Published: '" + str(message) + "' to the topic: " + str(TOPIC))
 
 
 # Plot heart rate graph(line graph). No longer in use
