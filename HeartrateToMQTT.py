@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import scipy.io as sio
@@ -25,42 +25,67 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import io
 import cv2
+
+############default value###############
+
+
+
+
+timelist=[]
+interval=0.5#time interval
+stamp=0#used with interval to append timelist
 RGB =np.empty((0, 3))
-heart_rates = [] 
-#global_i=0
-ENDPOINT = "a12ej9mk5jajtb-ats.iot.ap-east-1.amazonaws.com"
-PATH_TO_CERT = "cert.crt"
-PATH_TO_KEY = "private.key"
-PATH_TO_ROOT = "rootCA.crt"
+heart_rates = []
+heart_rate_trigger=False
+sampling_rate=30
+window_sec=5
+window_size=window_sec*sampling_rate
+trigger=False
 
-myAWSIoTMQTTClient = AWSIoTPyMQTT.AWSIoTMQTTClient('Other_Client')
-myAWSIoTMQTTClient.configureEndpoint(ENDPOINT, 8883)
-myAWSIoTMQTTClient.configureCredentials(PATH_TO_ROOT, PATH_TO_KEY, PATH_TO_CERT)
 
-# Connect to the MQTT broker
-myAWSIoTMQTTClient.connect()
-
-# OpenCV window to display the image
-def on_message(client, userdata, message):
-    #print("no")
+#########################################
+##define callback function    
+def trigger(client, userdata, message):      
+    global timelist
+    global stamp
     global RGB
     global heart_rates
-    # Get the image data from the MQTT message
-    #RGB = np.array([])
+    global trigger
+    payload = message.payload.decode("utf-8")
+    if(payload=='True'):
+        trigger=True
+        RGB =np.empty((0, 3))
+        stamp=0
+        heart_rates = []
+        timelist=[]
+    else:
+        trigger=False
+def on_message(client, userdata, message):
+      #print("no")
+    global RGB
+    global heart_rates
+    global window_size
     image_data = message.payload
     
-    # Convert the image data to a numpy array
+     # Convert the image data to a numpy array
     nparr = np.frombuffer(image_data, np.uint8)
     image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
     sum = np.sum(np.sum(image, axis=0), axis=0)
     #print(sum.shape)
     RGB=np.vstack((RGB,sum/(image.shape[0]*image.shape[1])))
     print(RGB.shape[0],RGB[0],RGB[RGB.shape[0]-1])
-    if(RGB.shape[0]>200):
-        RGB=RGB[1:]
- 
+    if(RGB.shape[0]>window_size):
+        RGB=RGB[1:]  
         
-myAWSIoTMQTTClient.subscribe("COMP7310",0,on_message)
+def get_sample_rate(client, userdata, message):      
+    global sampling_rate
+    global window_sec
+    global window_size
+    payload = message.payload.decode("utf-8")
+    sampling_rate=int(payload)
+    window_size=window_sec*sampling_rate
+########################################    
+
 
 def POS_WANG(RGB, fs):
     WinSec = 1.6
@@ -112,45 +137,63 @@ def _calculate_fft_hr(ppg_signal, fs=30, low_pass=0.75, high_pass=2.5):
 def _next_power_of_2(x):
     """Calculate the nearest power of 2."""
     return 1 if x == 0 else 2 ** (x - 1).bit_length()
+###############################################################
+#global_i=0
+ENDPOINT = "a12ej9mk5jajtb-ats.iot.ap-east-1.amazonaws.com"
+PATH_TO_CERT = "cert.crt"
+PATH_TO_KEY = "private.key"
+PATH_TO_ROOT = "rootCA.crt"
 
-#init time
-timelist=[]
-interval=0.5#time interval
-stamp=0#used with interval to append timelist
+myAWSIoTMQTTClient = AWSIoTPyMQTT.AWSIoTMQTTClient('Other_Client')
+myAWSIoTMQTTClient.configureEndpoint(ENDPOINT, 8883)
+myAWSIoTMQTTClient.configureCredentials(PATH_TO_ROOT, PATH_TO_KEY, PATH_TO_CERT)
+
+# Connect to the MQTT broker
+myAWSIoTMQTTClient.connect()
+#Subscribe
+myAWSIoTMQTTClient.subscribe("config_heartrate_switch",0,trigger)
+myAWSIoTMQTTClient.subscribe("COMP7310",0,on_message)
+myAWSIoTMQTTClient.subscribe("config_frame",0,get_sample_rate)
+
 while True:
         #Process data
-    global RGB
-    print("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH")
-    ##After getting 200 frame start to calculate BVP
-    if(RGB.shape[0]==200):   
-        plt.clf()  
-        BVP=POS_WANG(RGB,30)
-        heart_rate = _calculate_fft_hr(BVP)
-        timelist.append(interval*stamp)
-        stamp=stamp+1
-        heart_rates.append(heart_rate)
-        plt.plot(timelist,heart_rates,color='blue')
-        plt.xlabel('Time(s)')
-        plt.ylabel('BPM')
-        # Save the plot as an image file
-        image_buffer = io.BytesIO()
-        plt.savefig(image_buffer, format='png')
-        image_buffer.seek(0)
+    
+    if(RGB.size!=0):
+        ##After getting 150 frames start to calculate BVP
+        if(RGB.shape[0]==window_size):     
+            BVP=POS_WANG(RGB,sampling_rate)
+            heart_rate = _calculate_fft_hr(BVP)
+            timelist.append(interval*stamp)
+            stamp=stamp+1
+            heart_rates.append(heart_rate)
+            plt.figure(figsize=(4.7, 3.1))
+            plt.plot(timelist,heart_rates,color='blue')
+            plt.xlabel('Time (seconds)')  # 更新横轴标签为秒
+            plt.ylabel('Heart Rate')
+            plt.title('Heart Rate Variation(seconds)')
+            # Set the range of the y-axis
+            plt.ylim(40,150)
+            # Save the plot as an image file
+            image_buffer = io.BytesIO()
+            plt.savefig(image_buffer, format='png')
+            image_buffer.seek(0)
 
-        # Read the image file as binary data
-        image_data = image_buffer.read()
+            # Read the image file as binary data
+            image_data = image_buffer.read()
 
-        # Encode the image data as base64
-        base64_image = base64.b64encode(image_data).decode('utf-8')
-        myAWSIoTMQTTClient.publish("HEARTRATE",base64_image, 0)
-        ##
-        if(len(heart_rates)==60):
-            heart_rates=heart_rates[1:] 
-            timelist=timelist[1:]    
+            # Encode the image data as base64
+            base64_image = base64.b64encode(image_data).decode('utf-8')
+            if(trigger):
+                myAWSIoTMQTTClient.publish("HEARTRATE",base64_image, 0)
+            plt.close()
+            plt.clf()
+            ##
+            if(len(heart_rates)==60):
+                heart_rates=heart_rates[1:] 
+                timelist=timelist[1:]
+            
     time.sleep(interval)
-# Subscribe to the MQTT topic
-# Start the MQTT loop
-#myAWSIoTMQTTClient.online=myOnOnlineCallback
+    
 
 
 # In[ ]:
