@@ -25,7 +25,7 @@ class Application:
         middle_font = ('Times', 14)
         context_font = ('Arial', 12)
         self.plot_timer = None
-        self.subscribe_hr = True
+        self.subscribe_hr = False
         # self.current_fr = 30
         self.global_brightness = 0.0
         self.plot_lock = threading.Lock()
@@ -91,29 +91,29 @@ class Application:
                 [sg.Text('Exposure Control', font=middle_font), sg.Radio('disable', "RADIO2",key = '_EXPDIS_', enable_events=True), sg.Radio('enable', "RADIO2", key = '_EXPENA_', default=True, enable_events=True)],
                 # [sg.Button('Submit', key='_SUBMIT9_', font=context_font)],
                 [sg.Text('')],
-                [sg.Text('Heart Rate Plot'), sg.Checkbox('ON', key='_TOGGLE_', default=True, enable_events=True)]
+                [sg.Text('Heart Rate Plot'), sg.Checkbox('ON', key='_TOGGLE_', default=False, enable_events=True)]
             ], size=(350, 640), pad=(0, 0))]], font=middle_font)], ], pad=(0, 0), element_justification='c')]]
         
         # Column 3: 
         col3 = [[sg.Column([
             # First frame: Camera from mqtt
                 [sg.Frame('CAMERA', [
-                [sg.Image(key='_COMP7310_', size=(480, 320))],
+                [sg.Image(key='_COMP7310_',size=(480, 320))]
                 ], font=middle_font)],
                 # [sg.Frame('Heart Rate', [
                 # [sg.Text(key='_HEARTRATE_')],
                 # ], font=middle_font)],
             # Second frame: Heart rate from backend
-                [sg.Frame('Heart Rate Line Graph',[
-                [sg.Image(key='_HEARTRATE_', size = (480, 320))],
-                ], font=middle_font)]
-                ], pad=(0, 0), element_justification='c')] 
-                ]
+                [sg.pin(sg.Frame('Heart Rate Line Graph',[
+                [sg.Image(key='_HEARTRATE_')]
+                ], font=middle_font,size=(480, 320)))]]
+                , pad=(0, 0), element_justification='c')] 
+            ]
         layout = [[
             sg.Column(col1), sg.Column(col2), sg.Column(col3)
         ]]
 
-        self.window = sg.Window('Python MQTT Client - AWS IoT - COMP7310', layout)
+        self.window = sg.Window('Python MQTT Client - AWS IoT - COMP7310',layout)  
         while True:
             event, values = self.window.Read(timeout=5)
             if event is None or event == 'Exit':
@@ -125,11 +125,14 @@ class Application:
                         self.popup_dialog('Client Id is empty', 'Error', context_font)
                     else:
                         self.window['_CONNECT_BTN_'].update('Disconnect')
-                        self.aws_connect(self.window['_CLIENTID_IN_'].get())
+                        self.aws_connect(self.window['_CLIENTID_IN_'].get())  
 
                 else:
                     self.window['_CONNECT_BTN_'].update('Connect')
+                    self.window['_TOGGLE_'].update(value=False)
+                    self.subscribe_hr=False
                     self.aws_disconnect()
+                    
             # Frame size
             if event == '_SUBMIT1_':
                 if self.window['_CONNECT_BTN_'].get_text() == 'Connect':
@@ -230,8 +233,15 @@ class Application:
             
             # Switch of hr plot
             if event == '_TOGGLE_':
+                self.refresh_heart_graph()
                 self.toggle_subscription()
-                self.window['_NOTES_'].print('Switch toggle status ' + str(values['_TOGGLE_'])) 
+                self.window['_NOTES_'].print('Switch toggle status ' + str(values['_TOGGLE_']))
+                #trigger HeartRateToMQTT
+                msg=values['_TOGGLE_']
+                self.publish_message('config_heartrate_switch', msg)
+
+                
+                
 
             # Send camera data to gui queue
             try:
@@ -291,25 +301,32 @@ class Application:
         self.myAWSIoTMQTTClient = AWSIoTPyMQTT.AWSIoTMQTTClient(client_id)
         self.myAWSIoTMQTTClient.configureEndpoint(ENDPOINT, 8883)
         self.myAWSIoTMQTTClient.configureCredentials(PATH_TO_ROOT, PATH_TO_KEY, PATH_TO_CERT)
-
+    
         try:
             if self.myAWSIoTMQTTClient.connect():
+                
                 self.add_note('[MQTT] Connected')
                 self.mqtt_subscribe('COMP7310')
-                self.mqtt_subscribe_hr('HEARTRATE')
-                self.subscribe_hr = True
+                self.refresh_heart_graph()
+                                ####set the default window of Heart Rate chart#####
+                
             else:
                 self.add_note('[MQTT] Cannot Access AWS IOT')
         except Exception as e:
             tb = traceback.format_exc()
-            sg.Print(f'An error happened.  Here is the info:', e, tb)
+            sg.Print(f'An error happened.  Here is the info:', e, tb) 
+                        
 
 # Aws disconnect
     def aws_disconnect(self):
         if self.myAWSIoTMQTTClient is not None:
             self.myAWSIoTMQTTClient.disconnect()
             self.add_note('[MQTT] Successfully Disconnected!')
-
+            
+            ###if disconnect not show image
+            self.refresh_heart_graph()
+            self.refresh_camera()
+        
 # Subscribe binary stuff from mqtt server, then, put them into gui queue
     def mqtt_subscribe(self, topic):
         if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
@@ -325,7 +342,7 @@ class Application:
     def mqtt_subscribe_hr(self, topic):
         if self.myAWSIoTMQTTClient.subscribe(topic, 0, lambda client, userdata, message: {
 
-            self.gui_queue.put({"Target_UI": "_{}_".format(str(message.topic).upper()),
+            self.hr_queue.put({"Target_UI": "_{}_".format(str(message.topic).upper()),
                                 "Image": self.base64_to_png(message)})
         }):
             self.add_note('[MQTT] Topic: {}\n-> Subscribed\n'.format(topic))
@@ -377,6 +394,7 @@ class Application:
         # self.window['_NOTES_'].print("Published: '" + str(message) + "' to the topic: " + str(TOPIC))
 # Switch status of subscription
     def toggle_subscription(self):
+        self.refresh_heart_graph()
         if self.subscribe_hr:
             self.myAWSIoTMQTTClient.unsubscribe('HEARTRATE')
             self.subscribe_hr = False
@@ -385,6 +403,7 @@ class Application:
             self.mqtt_subscribe_hr('HEARTRATE')
             self.subscribe_hr = True
             self.add_note('[MQTT] Subscribed to HEARTRATE topic')
+            
 
 # Plot heart rate graph(line graph). No longer in use
     def plot_hr_graph(self):
@@ -416,6 +435,24 @@ class Application:
         plt.grid(True)
         # plt.tight_layout()
         plt.savefig('./heart_rate_line_graph/heart_rate_plot.png')
-
+    def refresh_heart_graph(self):
+        self.hr_queue = queue.Queue()
+        ####set the default window of Heart Rate chart#####
+        plt.figure(figsize=(4.7, 3.1))
+        plt.xlabel('Time (seconds)')  # 更新横轴标签为秒
+        plt.ylabel('Heart Rate')
+        plt.title('Heart Rate Variation(seconds)')
+        plt.xlim(0, 30)
+        # Set the range of the y-axis
+        plt.ylim(40,150)
+        # Save the plot as an image file
+        image_buffer = io.BytesIO()
+        plt.savefig(image_buffer, format='png')
+        self.window["_HEARTRATE_"].update(data=image_buffer.getvalue())
+        plt.close()
+        plt.clf()   
+    def refresh_camera(self):
+        self.gui_queue = queue.Queue()
+        self.window["_COMP7310_"].update(data='')
 if __name__ == '__main__':
     Application()
