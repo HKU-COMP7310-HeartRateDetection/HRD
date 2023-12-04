@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
+# In[1]:
 
 
 import scipy.io as sio
@@ -25,7 +25,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import io
 import cv2
-
+import pickle
 ############default value###############
 
 
@@ -35,21 +35,30 @@ timelist=[]
 interval=0.5#time interval
 stamp=0#used with interval to append timelist
 RGB =np.empty((0, 3))
+##heart_rate to show
 heart_rates = []
 heart_rate_trigger=False
 sampling_rate=30
 window_sec=5
-window_size=window_sec*sampling_rate
+window_size=math.ceil(window_sec*sampling_rate)
 trigger=False
+
+##heart_rate for 1m30s
+path='1min30sHeartrate{}.pkl'
+series=1
+heart_rates_1min30s=[]
+timelist_1min30s=[]
 
 
 #########################################
 ##define callback function    
 def trigger(client, userdata, message):      
     global timelist
+    global timelist_1min30s
     global stamp
     global RGB
     global heart_rates
+    global heart_rates_1min30s
     global trigger
     payload = message.payload.decode("utf-8")
     if(payload=='True'):
@@ -57,6 +66,8 @@ def trigger(client, userdata, message):
         RGB =np.empty((0, 3))
         stamp=0
         heart_rates = []
+        heart_rates_1min30s=[]
+        timelist_1min30s=[]
         timelist=[]
     else:
         trigger=False
@@ -74,8 +85,9 @@ def on_message(client, userdata, message):
     #print(sum.shape)
     RGB=np.vstack((RGB,sum/(image.shape[0]*image.shape[1])))
     print(RGB.shape[0],RGB[0],RGB[RGB.shape[0]-1])
+    ########## move the window################
     if(RGB.shape[0]>window_size):
-        RGB=RGB[1:]  
+        RGB=RGB[1:]       
         
 def get_sample_rate(client, userdata, message):      
     global sampling_rate
@@ -83,7 +95,7 @@ def get_sample_rate(client, userdata, message):
     global window_size
     payload = message.payload.decode("utf-8")
     sampling_rate=int(payload)
-    window_size=window_sec*sampling_rate
+    window_size=math.ceil(window_sec*sampling_rate)
 ########################################    
 
 
@@ -166,6 +178,16 @@ while True:
             timelist.append(interval*stamp)
             stamp=stamp+1
             heart_rates.append(heart_rate)
+            ##### save the file for 1min30s###
+            if(len(heart_rates_1min30s)<180):
+                timelist_1min30s.append(interval*stamp)
+                heart_rates_1min30s.append(heart_rate)
+            if(len(heart_rates_1min30s)==180):
+                with open(path.format(series), 'wb') as file:
+                    pickle.dump(heart_rates_1min30s, file)
+                series=series+1
+                heart_rates_1min30s.append(0)
+            #########################################
             plt.figure(figsize=(4.7, 3.1))
             plt.plot(timelist,heart_rates,color='blue')
             plt.xlabel('Time (seconds)')  # 更新横轴标签为秒
