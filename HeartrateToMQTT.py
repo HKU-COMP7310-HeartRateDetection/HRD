@@ -167,7 +167,7 @@ myAWSIoTMQTTClient.subscribe("config_heartrate_switch",0,trigger)
 myAWSIoTMQTTClient.subscribe("COMP7310",0,on_message)
 myAWSIoTMQTTClient.subscribe("config_frame",0,get_sample_rate)
 
-#while True:
+while True:
         #Process data
     
     if(RGB.size!=0):
