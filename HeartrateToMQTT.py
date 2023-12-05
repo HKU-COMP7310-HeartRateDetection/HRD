@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import scipy.io as sio
@@ -52,7 +52,7 @@ timelist_1min30s=[]
 
 #########################################
 ##define callback function    
-def trigger(client, userdata, message):      
+def Trigger(client, userdata, message):      
     global timelist
     global timelist_1min30s
     global stamp
@@ -163,14 +163,16 @@ myAWSIoTMQTTClient.configureCredentials(PATH_TO_ROOT, PATH_TO_KEY, PATH_TO_CERT)
 # Connect to the MQTT broker
 myAWSIoTMQTTClient.connect()
 #Subscribe
-myAWSIoTMQTTClient.subscribe("config_heartrate_switch",0,trigger)
+myAWSIoTMQTTClient.subscribe("config_heartrate_switch",0,Trigger)
 myAWSIoTMQTTClient.subscribe("COMP7310",0,on_message)
 myAWSIoTMQTTClient.subscribe("config_frame",0,get_sample_rate)
 
 while True:
         #Process data
     
-    if(RGB.size!=0):
+    #if(RGB.size!=0):
+    print(trigger)
+    if(trigger):
         ##After getting 150 frames start to calculate BVP
         if(RGB.shape[0]==window_size):     
             BVP=POS_WANG(RGB,sampling_rate)
